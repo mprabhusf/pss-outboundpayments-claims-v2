@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import styles from './ClaimsWorkspace.module.css'
 
@@ -19,21 +19,19 @@ type ExtractionStatus = 'idle' | 'inProgress' | 'completed'
 
 type ClaimItem = ServiceDelivered
 
+type UploadedInvoiceFile = {
+  id: string
+  name: string
+}
+
 type ClaimRecord = {
   id: string
   participantName: string
   items: ClaimItem[]
   claimedAmount: string
   paymentMethod: PaymentMethod
-  invoiceFileName?: string
+  invoiceFiles: UploadedInvoiceFile[]
   extractionStatus: ExtractionStatus
-}
-
-type Toast = {
-  id: string
-  claimId: string
-  message: string
-  type: 'info' | 'success'
 }
 
 type FiledClaim = {
@@ -92,7 +90,13 @@ export function ClaimsWorkspace() {
   const [claims, setClaims] = useState<ClaimRecord[]>([])
   const [filedClaims, setFiledClaims] = useState<FiledClaim[]>([])
   const [activeClaimIndex, setActiveClaimIndex] = useState(0)
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const extractionTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  useEffect(() => {
+    return () => {
+      Object.values(extractionTimersRef.current).forEach((t) => window.clearTimeout(t))
+    }
+  }, [])
 
   const filteredServices = useMemo(() => {
     const normalized = filterText.trim().toLowerCase()
@@ -128,11 +132,6 @@ export function ClaimsWorkspace() {
     })
   }
 
-  function addToast(toast: Omit<Toast, 'id'>) {
-    const id = `toast-${Date.now()}-${Math.random()}`
-    setToasts((prev) => [...prev, { ...toast, id }])
-  }
-
   function buildClaimsFromSelection() {
     const selectedServices = SERVICES.filter((service) => selectedIds.has(service.id))
     if (!selectedServices.length) return
@@ -149,6 +148,7 @@ export function ClaimsWorkspace() {
       items: rows,
       claimedAmount: String(rows.reduce((sum, row) => sum + row.quantity * 50, 0)),
       paymentMethod: PROVIDER_DEFAULT_PAYMENT,
+      invoiceFiles: [] as UploadedInvoiceFile[],
       extractionStatus: 'idle' as const,
     }))
 
@@ -161,42 +161,33 @@ export function ClaimsWorkspace() {
     setClaims((prev) => prev.map((claim) => (claim.id === claimId ? updater(claim) : claim)))
   }
 
-  function handleClaimInvoiceUpload(claimId: string, participantName: string, file?: File) {
+  function handleClaimInvoiceUpload(claimId: string, file?: File) {
     if (!file) return
+    const newFile: UploadedInvoiceFile = {
+      id: `inv-${claimId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      name: file.name,
+    }
     updateClaim(claimId, (claim) => ({
       ...claim,
-      invoiceFileName: file.name,
+      invoiceFiles: [...claim.invoiceFiles, newFile],
       extractionStatus: 'inProgress',
     }))
-    addToast({
-      claimId,
-      type: 'info',
-      message: `Document "${file.name}" for ${participantName}: data extraction is in progress in the background.`,
-    })
 
-    window.setTimeout(() => {
+    const prevTimer = extractionTimersRef.current[claimId]
+    if (prevTimer) window.clearTimeout(prevTimer)
+    extractionTimersRef.current[claimId] = window.setTimeout(() => {
+      delete extractionTimersRef.current[claimId]
       updateClaim(claimId, (claim) => {
         if (claim.extractionStatus !== 'inProgress') return claim
-        const extractedTotal = claim.items.reduce((sum, item) => sum + item.quantity * 65, 0)
+        const base = claim.items.reduce((sum, item) => sum + item.quantity * 65, 0)
+        const docBonus = claim.invoiceFiles.length * 5
         return {
           ...claim,
           extractionStatus: 'completed',
-          claimedAmount: String(extractedTotal),
+          claimedAmount: String(base + docBonus),
         }
       })
-      addToast({
-        claimId,
-        type: 'success',
-        message: `Extraction completed successfully for ${participantName}. Claim amount was updated from the document.`,
-      })
     }, 1800)
-  }
-
-  function refreshClaim(claimId: string) {
-    updateClaim(claimId, (claim) => ({
-      ...claim,
-      claimedAmount: String(claim.items.reduce((sum, item) => sum + item.quantity * 65, 0)),
-    }))
   }
 
   function submitClaims() {
@@ -207,7 +198,9 @@ export function ClaimsWorkspace() {
       itemCount: claim.items.length,
       claimedAmount: claim.claimedAmount,
       paymentMethod: claim.paymentMethod as FiledClaim['paymentMethod'],
-      invoiceFileName: claim.invoiceFileName,
+      invoiceFileName: claim.invoiceFiles.length
+        ? claim.invoiceFiles.map((f) => f.name).join('; ')
+        : undefined,
       submittedAt,
     }))
     setFiledClaims((prev) => [...nextFiledClaims, ...prev])
@@ -215,12 +208,6 @@ export function ClaimsWorkspace() {
     setActiveClaimIndex(0)
     setSelectedIds(new Set())
     navigate('/claims?tab=claims')
-
-    addToast({
-      claimId: 'all',
-      type: 'success',
-      message: `Submitted ${nextFiledClaims.length} claim(s) to agency for adjudication and ERP handoff.`,
-    })
   }
 
   function cancelReviewAndReturn() {
@@ -424,7 +411,7 @@ export function ClaimsWorkspace() {
                   <div className={styles.constituentSummary}>
                     <h3 className={styles.constituentName}>{activeClaim.participantName}</h3>
                     <p className={styles.summaryHelper}>
-                      One claim per constituent. Set claimed amount, payment instrument, and upload one invoice for this claim. Claim items below are the services included on this claim (read-only).
+                      One claim per constituent. Set claimed amount, payment instrument, and add invoice PDFs one at a time—they appear in the list below. Claim items below are the services on this claim (read-only).
                     </p>
                     <dl className={styles.summaryGrid}>
                       <div className={styles.summaryRow}>
@@ -462,34 +449,38 @@ export function ClaimsWorkspace() {
                         <span className={styles.fieldHint}>Pre-filled from provider preference; you may change before submitting.</span>
                       </label>
                       <div className={styles.claimUploadBlock}>
-                        <span className={styles.uploadLineHeading}>Upload invoice (one per claim)</span>
+                        <span className={styles.uploadLineHeading}>Upload invoices (add one file at a time)</span>
                         <div className={styles.uploadLineBody}>
                           <label className={styles.uploadButtonLabel}>
                             <input
                               type="file"
                               accept="application/pdf"
                               className={styles.uploadFileInput}
-                              onChange={(e) =>
-                                handleClaimInvoiceUpload(
-                                  activeClaim.id,
-                                  activeClaim.participantName,
-                                  e.target.files?.[0],
-                                )
-                              }
-                              aria-label={`Upload invoice for ${activeClaim.participantName}`}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0]
+                                if (f) handleClaimInvoiceUpload(activeClaim.id, f)
+                                e.target.value = ''
+                              }}
+                              aria-label={`Add invoice PDF for ${activeClaim.participantName}`}
                             />
                             <span className={`btn btn-secondary ${styles.uploadTrigger}`}>Choose PDF</span>
                           </label>
-                          <span className={styles.uploadFileMeta}>
-                            {activeClaim.invoiceFileName || 'No file uploaded'}
-                            {activeClaim.extractionStatus === 'inProgress' ? (
-                              <span className={styles.extractionInline}> · Extracting…</span>
-                            ) : null}
-                            {activeClaim.extractionStatus === 'completed' ? (
-                              <span className={styles.extractionInlineDone}> · Extraction complete</span>
-                            ) : null}
-                          </span>
                         </div>
+                        {activeClaim.invoiceFiles.length > 0 ? (
+                          <ul className={styles.uploadedFilesList} aria-label="Uploaded invoice files">
+                            {activeClaim.invoiceFiles.map((f) => (
+                              <li key={f.id}>{f.name}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        <p className={styles.uploadStatusLine}>
+                          {activeClaim.extractionStatus === 'inProgress' ? (
+                            <span className={styles.extractionInline}>Extracting…</span>
+                          ) : null}
+                          {activeClaim.extractionStatus === 'completed' && activeClaim.invoiceFiles.length > 0 ? (
+                            <span className={styles.extractionInlineDone}>Extraction complete</span>
+                          ) : null}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -535,25 +526,6 @@ export function ClaimsWorkspace() {
           </div>
 
           <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Screen 3: Asynchronous Extraction &amp; Submission State</h2>
-            <div className={styles.toastList} role="status" aria-live="polite">
-              {toasts.length === 0 ? (
-                <p className={styles.placeholder}>
-                  When you upload an invoice for a claim, you will see a notification that extraction is in progress, then another when it completes successfully.
-                </p>
-              ) : (
-                toasts.map((toast) => (
-                  <div key={toast.id} className={toast.type === 'success' ? styles.toastSuccess : styles.toastInfo}>
-                    <span>{toast.message}</span>
-                    {toast.type === 'success' && toast.claimId !== 'all' ? (
-                      <button type="button" className="btn btn-secondary" onClick={() => refreshClaim(toast.claimId)}>
-                        Refresh claim
-                      </button>
-                    ) : null}
-                  </div>
-                ))
-              )}
-            </div>
             <div className={styles.submitRow}>
               <button type="button" className="btn btn-secondary" onClick={cancelReviewAndReturn}>
                 Cancel
