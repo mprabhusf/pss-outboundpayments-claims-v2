@@ -13,18 +13,21 @@ type ServiceDelivered = {
   unitOfMeasure: string
 }
 
-type ClaimItem = ServiceDelivered
+type PaymentMethod = 'Wire' | 'Check' | 'ACH'
 
 type ExtractionStatus = 'idle' | 'inProgress' | 'completed'
+
+type ClaimLineItem = ServiceDelivered & {
+  lineAmount: string
+  paymentMethod: PaymentMethod
+  invoiceFileName?: string
+  extractionStatus: ExtractionStatus
+}
 
 type ClaimRecord = {
   id: string
   participantName: string
-  items: ClaimItem[]
-  claimedAmount: string
-  paymentMethod: 'Wire' | 'Check' | 'ACH'
-  invoiceFileName?: string
-  extractionStatus: ExtractionStatus
+  items: ClaimLineItem[]
 }
 
 type Toast = {
@@ -39,7 +42,7 @@ type FiledClaim = {
   participantName: string
   itemCount: number
   claimedAmount: string
-  paymentMethod: ClaimRecord['paymentMethod']
+  paymentMethod: PaymentMethod | 'Mixed'
   invoiceFileName?: string
   submittedAt: string
 }
@@ -74,6 +77,9 @@ function buildMockServices(): ServiceDelivered[] {
 }
 
 const SERVICES = buildMockServices()
+
+/** Default payment instrument per line item (provider preference; user may change on review). */
+const PROVIDER_DEFAULT_PAYMENT: PaymentMethod = 'ACH'
 
 export function ClaimsWorkspace() {
   const navigate = useNavigate()
@@ -132,19 +138,21 @@ export function ClaimsWorkspace() {
     const selectedServices = SERVICES.filter((service) => selectedIds.has(service.id))
     if (!selectedServices.length) return
 
-    const grouped = selectedServices.reduce<Record<string, ClaimItem[]>>((acc, row) => {
+    const grouped = selectedServices.reduce<Record<string, ServiceDelivered[]>>((acc, row) => {
       acc[row.participantName] = acc[row.participantName] || []
       acc[row.participantName].push(row)
       return acc
     }, {})
 
-    const nextClaims = Object.entries(grouped).map(([participantName, items]) => ({
+    const nextClaims = Object.entries(grouped).map(([participantName, rows]) => ({
       id: `claim-${participantName.toLowerCase().replace(/\s+/g, '-')}`,
       participantName,
-      items,
-      claimedAmount: String(items.reduce((sum, item) => sum + item.quantity * 50, 0)),
-      paymentMethod: 'Wire' as const,
-      extractionStatus: 'idle' as const,
+      items: rows.map((row) => ({
+        ...row,
+        lineAmount: String(row.quantity * 50),
+        paymentMethod: PROVIDER_DEFAULT_PAYMENT,
+        extractionStatus: 'idle' as const,
+      })),
     }))
 
     setClaims(nextClaims)
@@ -156,46 +164,70 @@ export function ClaimsWorkspace() {
     setClaims((prev) => prev.map((claim) => (claim.id === claimId ? updater(claim) : claim)))
   }
 
-  function handleInvoiceUpload(claimId: string, file?: File) {
-    if (!file) return
+  function toastKeyForLine(claimId: string, itemId: string) {
+    return `${claimId}:${itemId}`
+  }
+
+  function updateClaimItem(
+    claimId: string,
+    itemId: string,
+    updater: (item: ClaimLineItem) => ClaimLineItem,
+  ) {
     updateClaim(claimId, (claim) => ({
       ...claim,
+      items: claim.items.map((item) => (item.id === itemId ? updater(item) : item)),
+    }))
+  }
+
+  function handleLineInvoiceUpload(claimId: string, itemId: string, file?: File) {
+    if (!file) return
+    const key = toastKeyForLine(claimId, itemId)
+    updateClaimItem(claimId, itemId, (item) => ({
+      ...item,
       invoiceFileName: file.name,
       extractionStatus: 'inProgress',
     }))
-    addToast({ claimId, type: 'info', message: 'Invoice data extraction in progress.' })
+    addToast({ claimId: key, type: 'info', message: 'Invoice data extraction in progress.' })
 
     window.setTimeout(() => {
-      updateClaim(claimId, (claim) => ({
-        ...claim,
+      updateClaimItem(claimId, itemId, (item) => ({
+        ...item,
         extractionStatus: 'completed',
-        claimedAmount: claim.claimedAmount || '0',
+        lineAmount: item.lineAmount || '0',
       }))
-      addToast({ claimId, type: 'success', message: 'Completed extraction. Refresh this claim to load extracted values.' })
+      addToast({
+        claimId: key,
+        type: 'success',
+        message: 'Completed extraction. Refresh this line to load extracted values.',
+      })
     }, 1800)
   }
 
-  function refreshClaim(claimId: string) {
-    updateClaim(claimId, (claim) => {
-      const extractedAmount = claim.items.reduce((sum, item) => sum + item.quantity * 65, 0)
-      return {
-        ...claim,
-        claimedAmount: String(extractedAmount),
-      }
-    })
+  function refreshClaimLine(toastKey: string) {
+    const [claimId, itemId] = toastKey.split(':')
+    if (!claimId || !itemId) return
+    updateClaimItem(claimId, itemId, (item) => ({
+      ...item,
+      lineAmount: String(item.quantity * 65),
+    }))
   }
 
   function submitClaims() {
     const submittedAt = new Date().toLocaleString()
-    const nextFiledClaims = claims.map((claim) => ({
-      id: claim.id,
-      participantName: claim.participantName,
-      itemCount: claim.items.length,
-      claimedAmount: claim.claimedAmount,
-      paymentMethod: claim.paymentMethod,
-      invoiceFileName: claim.invoiceFileName,
-      submittedAt,
-    }))
+    const nextFiledClaims = claims.map((claim) => {
+      const total = claim.items.reduce((sum, it) => sum + (Number.parseFloat(it.lineAmount) || 0), 0)
+      const methods = [...new Set(claim.items.map((it) => it.paymentMethod))]
+      const invoices = claim.items.map((it) => it.invoiceFileName).filter(Boolean) as string[]
+      return {
+        id: claim.id,
+        participantName: claim.participantName,
+        itemCount: claim.items.length,
+        claimedAmount: String(total),
+        paymentMethod: (methods.length === 1 ? methods[0] : 'Mixed') as FiledClaim['paymentMethod'],
+        invoiceFileName: invoices.length ? invoices.join('; ') : undefined,
+        submittedAt,
+      }
+    })
     setFiledClaims((prev) => [...nextFiledClaims, ...prev])
     setClaims([])
     setActiveClaimIndex(0)
@@ -221,6 +253,10 @@ export function ClaimsWorkspace() {
 
   const activeClaim = claims[activeClaimIndex]
   const isLastClaimStep = activeClaimIndex === claims.length - 1
+
+  const activeClaimLineTotal = activeClaim
+    ? activeClaim.items.reduce((sum, it) => sum + (Number.parseFloat(it.lineAmount) || 0), 0)
+    : 0
 
   function goToNextClaim() {
     if (isLastClaimStep) return
@@ -399,81 +435,84 @@ export function ClaimsWorkspace() {
                     className={index === activeClaimIndex ? styles.stepTabActive : styles.stepTab}
                     onClick={() => setActiveClaimIndex(index)}
                   >
-                    <span>{claim.participantName}</span>
-                    <small>{claim.items.length} items</small>
+                    <span className={styles.stepTabName}>{claim.participantName}</span>
+                    <small>{claim.items.length} claim item{claim.items.length === 1 ? '' : 's'}</small>
                   </button>
                 ))}
               </aside>
 
               {activeClaim ? (
                 <article className={styles.claimCard}>
-                  <div className={styles.claimHeaderStatic}>
-                    <span>{activeClaim.participantName}</span>
-                    <span>{activeClaim.items.length} Items</span>
+                  <div className={styles.constituentSummary}>
+                    <h3 className={styles.constituentName}>{activeClaim.participantName}</h3>
+                    <p className={styles.summaryHelper}>
+                      One claim per constituent. Each delivered service is a separate claim line below—set amount, payment instrument, and upload per line.
+                    </p>
+                    <dl className={styles.summaryGrid}>
+                      <div className={styles.summaryRow}>
+                        <dt>Claim line items</dt>
+                        <dd>{activeClaim.items.length}</dd>
+                      </div>
+                      <div className={styles.summaryRow}>
+                        <dt>Claim total (sum of lines)</dt>
+                        <dd>{activeClaimLineTotal.toFixed(2)}</dd>
+                      </div>
+                    </dl>
                   </div>
 
-                  <div className={styles.claimControls}>
-                    <label>
-                      Claimed Amount
-                      <input
-                        className="input"
-                        value={activeClaim.claimedAmount}
-                        onChange={(e) => updateClaim(activeClaim.id, (existing) => ({ ...existing, claimedAmount: e.target.value }))}
-                      />
-                    </label>
-                    <label>
-                      Payment Instrument / Method
-                      <select
-                        className="select"
-                        value={activeClaim.paymentMethod}
-                        onChange={(e) =>
-                          updateClaim(activeClaim.id, (existing) => ({
-                            ...existing,
-                            paymentMethod: e.target.value as ClaimRecord['paymentMethod'],
-                          }))
-                        }
-                      >
-                        <option value="Wire">Wire</option>
-                        <option value="Check">Check</option>
-                        <option value="ACH">ACH</option>
-                      </select>
-                    </label>
-                    <label className={styles.upload}>
-                      Upload Invoice
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={(e) => handleInvoiceUpload(activeClaim.id, e.target.files?.[0])}
-                      />
-                      <span>{activeClaim.invoiceFileName || 'No invoice uploaded'}</span>
-                    </label>
-                  </div>
-
-                  <div className={styles.claimItems}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Service Type</th>
-                          <th>Date</th>
-                          <th>Start Time</th>
-                          <th>End Time</th>
-                          <th>Quantity</th>
-                          <th>Unit of Measure</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeClaim.items.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.serviceType}</td>
-                            <td>{item.date}</td>
-                            <td>{item.startTime}</td>
-                            <td>{item.endTime}</td>
-                            <td>{item.quantity}</td>
-                            <td>{item.unitOfMeasure}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className={styles.claimLineList}>
+                    {activeClaim.items.map((item, lineIndex) => (
+                      <div key={item.id} className={styles.claimLineCard}>
+                        <div className={styles.claimLineHeader}>
+                          <span className={styles.claimLineServiceType}>Service type: {item.serviceType}</span>
+                          <span className={styles.claimLineMeta}>
+                            Line {lineIndex + 1} of {activeClaim.items.length} · {item.date} · {item.startTime}–{item.endTime} · Qty {item.quantity} {item.unitOfMeasure}
+                          </span>
+                        </div>
+                        <div className={styles.claimLineFields}>
+                          <label>
+                            Amount
+                            <input
+                              className="input"
+                              value={item.lineAmount}
+                              onChange={(e) =>
+                                updateClaimItem(activeClaim.id, item.id, (existing) => ({
+                                  ...existing,
+                                  lineAmount: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Payment instrument
+                            <select
+                              className="select"
+                              value={item.paymentMethod}
+                              onChange={(e) =>
+                                updateClaimItem(activeClaim.id, item.id, (existing) => ({
+                                  ...existing,
+                                  paymentMethod: e.target.value as PaymentMethod,
+                                }))
+                              }
+                            >
+                              <option value="Wire">Wire</option>
+                              <option value="Check">Check</option>
+                              <option value="ACH">ACH</option>
+                            </select>
+                            <span className={styles.fieldHint}>Pre-filled from provider preference; you may change per line.</span>
+                          </label>
+                          <label className={styles.upload}>
+                            Upload supporting document
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={(e) => handleLineInvoiceUpload(activeClaim.id, item.id, e.target.files?.[0])}
+                            />
+                            <span>{item.invoiceFileName || 'No file uploaded'}</span>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className={styles.stepActions}>
@@ -496,8 +535,8 @@ export function ClaimsWorkspace() {
                   <div key={toast.id} className={toast.type === 'success' ? styles.toastSuccess : styles.toastInfo}>
                     <span>{toast.message}</span>
                     {toast.type === 'success' && toast.claimId !== 'all' ? (
-                      <button type="button" className="btn btn-secondary" onClick={() => refreshClaim(toast.claimId)}>
-                        Refresh Claim
+                      <button type="button" className="btn btn-secondary" onClick={() => refreshClaimLine(toast.claimId)}>
+                        Refresh line
                       </button>
                     ) : null}
                   </div>
