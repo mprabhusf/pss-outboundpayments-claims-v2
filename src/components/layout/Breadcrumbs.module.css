@@ -1,0 +1,26 @@
+.breadcrumbs {
+  font-size: var(--text-helper);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.item {
+  display: inline;
+}
+
+.sep {
+  margin: 0 var(--space-2);
+  color: var(--color-text-placeholder);
+}
+
+.link {
+  color: var(--color-info);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.text {
+  color: var(--color-text);
+}

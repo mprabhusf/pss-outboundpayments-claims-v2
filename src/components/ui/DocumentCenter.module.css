@@ -1,0 +1,223 @@
+.wrapper {
+  margin-bottom: var(--space-6);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-4);
+  font-size: var(--text-card-title);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: var(--color-page-bg);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header:hover {
+  background: var(--color-secondary);
+}
+
+.header:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info-light);
+}
+
+.headerTitle {
+  flex: 1;
+}
+
+.chevron {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.body {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.helperText {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-label);
+  color: var(--color-text);
+}
+
+.dropZone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+  background: var(--color-page-bg);
+  transition: border-color 0.15s, background 0.15s;
+  margin-top: var(--space-3);
+}
+
+.dropZone:focus-within {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 2px var(--color-info-light);
+}
+
+.dropZoneActive {
+  border-color: var(--color-primary);
+  background: var(--color-secondary);
+}
+
+.dropText {
+  margin: 0;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text);
+}
+
+.uploadLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--color-info);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.uploadLink:hover {
+  color: var(--color-primary);
+}
+
+.uploadLink:focus {
+  outline: none;
+  text-decoration: underline;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.errorMessage {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-helper);
+  color: var(--color-error);
+}
+
+.fileList {
+  margin-top: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.fileRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-top: var(--space-3);
+}
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 64px;
+  height: 80px;
+  background: var(--color-page-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.thumbnailImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnailPlaceholder {
+  font-size: var(--text-helper);
+  color: var(--color-text-muted);
+}
+
+.metadata {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.metaLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-helper);
+  color: var(--color-text-muted);
+}
+
+.metaLabel .select {
+  min-width: 140px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  font-size: var(--text-helper);
+  color: var(--color-info);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+}
+
+.actionBtn:hover {
+  text-decoration: underline;
+}
+
+.actionBtn:focus {
+  outline: none;
+  text-decoration: underline;
+}
+
+.actionBtnIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.actionBtnIcon:hover {
+  color: var(--color-error);
+  background: var(--color-error-light);
+}
+
+.actionBtnIcon:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info-light);
+}

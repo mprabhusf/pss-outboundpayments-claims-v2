@@ -1,0 +1,105 @@
+.revaluate {
+  margin-bottom: var(--space-6);
+}
+
+.programCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.programCard {
+  padding: var(--space-4);
+  background: var(--color-page-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.programCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.programName {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.infoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.infoBtn:hover {
+  color: var(--color-text);
+}
+
+.programDesc {
+  font-size: var(--text-helper);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.programActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.selectedBadge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-helper);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-success);
+  background: var(--color-success-light);
+  border-radius: var(--radius);
+}
+
+.deselectLink {
+  margin-left: var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.deselectLink:hover {
+  text-decoration: underline;
+}
+
+.category {
+  margin-bottom: var(--space-6);
+}
+
+.category:last-child {
+  margin-bottom: 0;
+}
+
+.catTitle {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+
+.programList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.programName {
+  font-weight: var(--font-weight-medium);
+}

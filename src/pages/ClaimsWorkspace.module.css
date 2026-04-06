@@ -1,0 +1,326 @@
+.workspace {
+  padding: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.intro {
+  margin: 0 0 var(--space-6) 0;
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-helper);
+  color: var(--color-text-muted);
+}
+
+.breadcrumbLink {
+  background: none;
+  border: none;
+  color: var(--color-info);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.tab,
+.tabActive {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+}
+
+.tab:hover {
+  background: var(--color-page-bg);
+}
+
+.tabActive {
+  background: var(--color-info-light);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.cardTitle {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-section);
+  white-space: nowrap;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.cardHeader .cardTitle {
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.headerActions :global(.btn) {
+  white-space: nowrap;
+}
+
+.searchInput {
+  width: 320px;
+  max-width: 320px;
+}
+
+.filterIconBtn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-white);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.filterIconBtn:hover {
+  background: var(--color-page-bg);
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.selectionMeta {
+  margin: 0 0 var(--space-3) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-helper);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--color-divider);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.table thead th {
+  background: var(--color-page-bg);
+}
+
+.claimList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.reviewFlow {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-4);
+}
+
+.stepTabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-right: 1px solid var(--color-border);
+  padding-right: var(--space-3);
+}
+
+.stepTab,
+.stepTabActive {
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepTabActive {
+  border-color: var(--color-info);
+  background: var(--color-info-light);
+}
+
+.stepTab small,
+.stepTabActive small {
+  color: var(--color-text-muted);
+}
+
+.claimCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.claimHeaderStatic {
+  background: var(--color-secondary-dark);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: var(--font-weight-semibold);
+}
+
+.claimHeader {
+  width: 100%;
+  border: none;
+  background: var(--color-secondary-dark);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.claimControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.claimControls label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-label);
+}
+
+.upload input[type="file"] {
+  font-size: 0.875rem;
+}
+
+.upload span {
+  color: var(--color-text-muted);
+  font-size: var(--text-helper);
+}
+
+.claimItems {
+  padding: 0 var(--space-4) var(--space-4) var(--space-4);
+}
+
+.toastList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toastInfo,
+.toastSuccess {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toastInfo {
+  background: var(--color-info-light);
+}
+
+.toastSuccess {
+  background: var(--color-success-light);
+}
+
+.submitRow {
+  margin-top: var(--space-5);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.reviewActions {
+  margin-top: var(--space-4);
+}
+
+.stepActions {
+  padding: 0 var(--space-4) var(--space-4) var(--space-4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.placeholder {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 980px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .claimControls {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewFlow {
+    grid-template-columns: 1fr;
+  }
+
+  .stepTabs {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    padding-right: 0;
+    padding-bottom: var(--space-3);
+  }
+}
